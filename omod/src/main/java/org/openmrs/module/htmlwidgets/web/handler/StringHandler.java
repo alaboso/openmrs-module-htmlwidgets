@@ -19,10 +19,7 @@ import java.io.Writer;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.annotation.Handler;
 import org.openmrs.module.htmlwidgets.web.WidgetConfig;
-import org.openmrs.module.htmlwidgets.web.html.TextAreaWidget;
-import org.openmrs.module.htmlwidgets.web.html.TextWidget;
-import org.openmrs.module.htmlwidgets.web.html.Widget;
-import org.openmrs.module.htmlwidgets.web.html.WidgetFactory;
+import org.openmrs.module.htmlwidgets.web.html.*;
 
 /**
  * FieldGenHandler for String Types
@@ -36,14 +33,31 @@ public class StringHandler extends WidgetHandler {
 	@Override
 	public void render(WidgetConfig config, Writer w) throws IOException {
 		
-		Widget widget = null;
+		Widget widget;
 		
 		if (config.getType() == Character.class) {
 			widget = WidgetFactory.getInstance(TextWidget.class, config);
 			config.setConfiguredAttribute("size", "2");
 			config.setConfiguredAttribute("maxLength", "1");
-		}
-		else {
+		} else if (StringUtils.isNotBlank(config.getAttributeValue("codedOptions"))) {
+			CodedWidget codedWidget = WidgetFactory.getInstance(SelectWidget.class, config);
+			String optionList = config.getAttribute("codedOptions").getValue();
+			String optionSeparator = config.getAttributeValue("optionSeparator", ",");
+			String itemSeparator = config.getAttributeValue("itemSeparator", ":");
+			for (String o : optionList.split(optionSeparator)) {
+				if(o.indexOf(itemSeparator) != -1){
+					String[] items = o.split(itemSeparator);
+					if(items.length > 1){
+						codedWidget.addOption(new Option(items[0], items[1], items[1], items[0]), config);
+					} else {
+						codedWidget.addOption(new Option(items[0], items[0], items[0], items[0]), config);
+					}
+				} else {
+					codedWidget.addOption(new Option(o, o, o, o), config);
+				}
+			}
+			widget = codedWidget;
+		} else {
 			String rows = config.getAttributeValue("rows");
 			String cols = config.getAttributeValue("cols");
 			if (StringUtils.isNotEmpty(rows) || StringUtils.isNotEmpty(cols) || "textarea".equals(config.getFormat())) {
